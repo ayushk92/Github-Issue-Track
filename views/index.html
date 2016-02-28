@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<title>GitHub Issue Count</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+</head>
+<script>
+	var app = angular.module("githubIssueApp",[]);	
+	app.controller("githubIssueCtrl", function($scope, $http) {	
+	  
+	  $scope.submit = function(){
+		  	  issue_ids = [];
+		  	  $scope.total_count = 0;
+			  $scope.lastTwentyFourHours = 0;
+			  $scope.lastSevenDays = 0;
+			  $scope.moreThanSevenDays = 0;
+			  count = 0;			  
+			  previousDayDate.setDate(currentDate.getDate() - 1);
+			  lastWeekDate.setDate(currentDate.getDate() - 7);
+		  	  github_api_repo_link = $scope.repo_link.replace("github.com","api.github.com/repos");	  	
+		  	  github_api_repo_link = github_api_repo_link + "/issues"
+		  	  getPageCountOfIssues(github_api_repo_link,1);
+	  	
+		};
+	  var currentDate = new Date();
+	  var previousDayDate = new Date();
+	  var lastWeekDate  = new Date();
+	  issue_ids = []; //to keep track of issueId
+	  count = 0;
+	  var getPageCountOfIssues = function(github_api_repo_link,pageNo){
+	  	$http.get(github_api_repo_link + "?page=" + pageNo).
+		success(function(response) {
+		//console.log(response)			  
+			for(i = 0 ; i < response.length; i++){
+				//to avoid duplicate issues check it issueId exist in issue_ids array
+				if(! ($.inArray(response[i].id, issue_ids) > -1)){
+					issue_ids[count++] = response[i].id;
+					$scope.total_count++;
+					var issueDate = new Date(response[i].created_at);
+					if(issueDate <= currentDate && issueDate >= previousDayDate)
+						$scope.lastTwentyFourHours++;
+					else if(issueDate < previousDayDate && issueDate > lastWeekDate)
+						$scope.lastSevenDays++;
+					else
+						$scope.moreThanSevenDays++;
+				}
+			}
+			//check for next page only if any response is returned.
+			if(response.length > 0)
+				getPageCountOfIssues(github_api_repo_link,++pageNo)
+
+		});	
+	  }
+	  
+	});
+</script>
+
+<body ng-app="githubIssueApp" ng-controller="githubIssueCtrl" >
+	<form>
+		Github Repository:</br>
+		<input type="text" name="repo_link" ng-model="repo_link"></br>
+		<button value="Submit" ng-click="submit()">SUBMIT</button>
+	</form>
+	</br>
+	<div name="content">
+		<table>
+			<tr>
+				<td>Total Issues</td>
+				<td>{{total_count}}</td>
+			</tr>
+			<tr>
+				<td>Number of open issues that were opened in the last 24 hours</td>
+				<td>{{lastTwentyFourHours}}</td>
+			</tr>
+			<tr>
+				<td>Number of open issues that were opened more than 24 hours ago but less than 7 days ago</td>
+				<td>{{lastSevenDays}}</td>
+			</tr>
+			<tr>
+				<td>Number of open issues that were opened more than 7 days ago</td>
+				<td>{{moreThanSevenDays}}</td>
+			</tr>
+		</table>
+	</div>
+</body>
+</html>
